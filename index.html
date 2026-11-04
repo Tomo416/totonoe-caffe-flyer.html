@@ -61,6 +61,7 @@ body{background:#E9E6E2;font-family:"Totonoe Serif","Noto Serif CJK JP","Hiragin
 .tools input{font:inherit;padding:6px;min-height:36px;border:1px solid #bbb;border-radius:7px}
 .tools i{display:inline-block;width:24px;height:12px;border-radius:3px;border:1px solid #0002;margin-right:5px;vertical-align:-1px}
 .gl{width:1.5em;font-size:12px;color:#666}
+[hidden]{display:none!important}
 .dateItem{display:flex;gap:2px}
 .dateItem button{padding:0 9px}
 
@@ -98,8 +99,9 @@ body{background:#E9E6E2;font-family:"Totonoe Serif","Noto Serif CJK JP","Hiragin
     <button class="main" onclick="exportJpeg('insta')">Instagram用JPEG（4:5）</button>
     <button class="main" onclick="exportJpeg('full')">チラシ全面JPEG</button>
   </div>
-  <div id="jpegOut" hidden style="display:none;gap:8px">
+  <div id="jpegOut" hidden style="gap:8px">
     <p id="jpegMsg" style="font-size:13px"></p>
+    <button id="jpegShare" class="main" hidden style="justify-self:start">写真に保存・Instagramへ</button>
     <a id="jpegLink" style="font-size:14px;color:#4A2C20">もう一度ダウンロード</a>
     <img id="jpegImg" alt="書き出したJPEG" style="width:100%;max-width:320px;border:1px solid #ddd">
   </div>
@@ -292,8 +294,17 @@ async function exportJpeg(kind){
     if(!blob) throw new Error("blob");
     const url=URL.createObjectURL(blob),name=`totonoe-kissa-${state.season}-${kind}.jpg`;
     $("jpegImg").src=url;$("jpegLink").href=url;$("jpegLink").download=name;
-    $("jpegLink").click();
-    msg.textContent=`${W}×${H}で書き出しました。保存されないときは、下の画像を長押しか右クリックで保存してください。`;
+    const file=new File([blob],name,{type:"image/jpeg"}),sb=$("jpegShare");
+    const canShare=!!(navigator.canShare&&navigator.canShare({files:[file]}))&&navigator.maxTouchPoints>0;
+    sb.hidden=!canShare;
+    if(canShare){
+      /* iPad・iPhone：共有シートから「画像を保存」で写真アプリへ、またはInstagramへ直接 */
+      sb.onclick=()=>navigator.share({files:[file]}).catch(()=>{});
+      msg.textContent=`${W}×${H}で書き出しました。下のボタンから「画像を保存」を選ぶと写真アプリに入ります。`;
+    }else{
+      $("jpegLink").click();
+      msg.textContent=`${W}×${H}で書き出しました。保存されないときは、下の画像を長押しか右クリックで保存してください。`;
+    }
   }catch(e){
     console.error(e);
     msg.textContent="書き出せませんでした。ファイルをChromeで直接開いて、もう一度試してください。";
